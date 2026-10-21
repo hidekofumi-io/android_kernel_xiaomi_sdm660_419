@@ -1,0 +1,52 @@
+
+name: San Kernel Build Preparation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout San Kernel source
+        uses: actions/checkout@v4
+        with:
+          ref: fsm-lav
+          fetch-depth: 1
+
+      - name: Show source information
+        run: |
+          echo "=== Branch ==="
+          git branch --show-current
+          git log -1 --oneline
+
+          echo "=== Kernel version ==="
+          make kernelversion
+
+      - name: Find lavender defconfig
+        run: |
+          echo "=== Candidate defconfig files ==="
+          find arch/arm64/configs \
+            -type f \
+            \( -iname '*lavender*' -o -iname '*sdm660*' \) \
+            -print
+
+      - name: Inspect build instructions
+        run: |
+          echo "=== Build-related files ==="
+          find . -maxdepth 3 -type f \
+            \( -iname 'readme*' \
+            -o -name 'build.config*' \
+            -o -iname '*build*.sh' \
+            -o -iname '*clang*' \) \
+            -print | head -200
+
+          echo "=== Compiler references ==="
+          grep -RniE \
+            'clang|CROSS_COMPILE|CLANG_TRIPLE|defconfig|AnyKernel' \
+            README* Makefile build.config* 2>/dev/null \
+            | head -150 || true
